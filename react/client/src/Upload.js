@@ -37,13 +37,13 @@ const Upload = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-4xl font-bold mb-4">Upload and Clean Data</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <h1 className="text-4xl font-bold mb-4 text-center">Upload and Clean Data</h1>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
         <input
           type="file"
           onChange={handleFileChange}
-          className="mb-4 w-full p-2 border rounded"
+          className="mb-4 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           type="submit"
@@ -52,7 +52,7 @@ const Upload = () => {
           Upload and Clean
         </button>
       </form>
-      {message && <p className="mt-4 text-xl">{message}</p>}
+      {message && <p className="mt-4 text-xl text-center">{message}</p>}
     </div>
   );
 };

@@ -12,6 +12,7 @@ code {
     monospace;
 }
 
+
 /* Tailwind CSS Directives */
 @tailwind base;
 @tailwind components;
