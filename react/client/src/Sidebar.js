@@ -23,7 +23,7 @@ const ItemTypes = {
   TILE: 'tile',
 };
 
-const Tile = ({ option, index, moveTile, removeTile }) => {
+const Tile = ({ option, index, moveTile, removeTile, numbered }) => {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TILE,
     item: { option, index },
@@ -39,7 +39,7 @@ const Tile = ({ option, index, moveTile, removeTile }) => {
       style={{ opacity: isDragging ? 0.5 : 1, color: 'black' }}  // Set text color to black
       onClick={() => removeTile(index)}
     >
-      {option}
+      {numbered ? `${index + 1}. ${option}` : option}
     </div>
   );
 };
@@ -76,6 +76,7 @@ const Pipeline = ({ pipeline, setPipeline }) => {
             setPipeline(newPipeline);
           }}
           removeTile={(index) => setPipeline(pipeline.filter((_, i) => i !== index))}
+          numbered
         />
       ))}
     </div>
@@ -85,7 +86,7 @@ const Pipeline = ({ pipeline, setPipeline }) => {
 const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, message, cleanedFile }) => {
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="bg-gray-800 text-white w-64 p-4 flex flex-col sidebar">
+      <div className="bg-gray-800 text-white p-4 flex flex-col sidebar">
         <h2 className="text-xl font-bold mb-4">Data Cleaning</h2>
         <form onSubmit={handleSubmit} className="flex flex-col">
           <input
