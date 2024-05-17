@@ -7,8 +7,14 @@ import json
 import logging
 from werkzeug.utils import secure_filename
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
+from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE
+from scipy import stats
 import re
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
 
 app = Flask(__name__)
 CORS(app)
@@ -120,6 +126,60 @@ def clean_uniform_substrings(df, substrings):
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
+def remove_outliers(df, z_thresh=3):
+    z_scores = np.abs(stats.zscore(df.select_dtypes(include=[np.number])))
+    df = df[(z_scores < z_thresh).all(axis=1)]
+    return df
+
+def normalize_data(df):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    scaler = MinMaxScaler()
+    df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    return df
+
+def standardize_data(df):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    scaler = StandardScaler()
+    df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    return df
+
+def create_features(df):
+    # Example: Creating a new feature based on existing ones
+    if 'column1' in df.columns and 'column2' in df.columns:
+        df['new_feature'] = df['column1'] * df['column2']
+    return df
+
+def process_text(df, column):
+    stop_words = set(stopwords.words('english'))
+    stemmer = PorterStemmer()
+    
+    def clean_text(text):
+        tokens = word_tokenize(text)
+        tokens = [word for word in tokens if word is not None]
+        tokens = [word for word in tokens if word.isalnum()]
+        tokens = [word for word in tokens if word not in stop_words]
+        tokens = [stemmer.stem(word) for word in tokens]
+        return ' '.join(tokens)
+    
+    df[column] = df[column].apply(lambda x: clean_text(x) if isinstance(x, str) else x)
+    return df
+
+def balance_data(df, target_column):
+    smote = SMOTE()
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+    X_res, y_res = smote.fit_resample(X, y)
+    df_res = pd.concat([X_res, y_res], axis=1)
+    return df_res
+
+def reduce_dimensions(df, n_components=2):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    pca = PCA(n_components=n_components)
+    df_pca = pca.fit_transform(df[numeric_cols])
+    df_pca = pd.DataFrame(df_pca, columns=[f'PC{i+1}' for i in range(n_components)])
+    df = pd.concat([df, df_pca], axis=1).drop(columns=numeric_cols)
+    return df
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -161,6 +221,22 @@ def upload_file():
         if 'clean_uniform_substrings' in options:
             uniform_substrings = find_uniform_substrings(df)
             df = clean_uniform_substrings(df, uniform_substrings)
+        if 'remove_outliers' in options:
+            df = remove_outliers(df)
+        if 'normalize_data' in options:
+            df = normalize_data(df)
+        if 'standardize_data' in options:
+            df = standardize_data(df)
+        if 'create_features' in options:
+            df = create_features(df)
+        if 'process_text' in options:
+            # Adjust column name as needed
+            df = process_text(df, column='text_column')
+        if 'balance_data' in options:
+            # Adjust target column name as needed
+            df = balance_data(df, target_column='target')
+        if 'reduce_dimensions' in options:
+            df = reduce_dimensions(df)
 
         cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
         save_to_csv(df, cleaned_filepath)

@@ -9,7 +9,14 @@ const cleaningOptions = [
   'fix_missing_values',
   'clean_uniform_prefixes',
   'clean_uniform_postfixes',
-  'clean_uniform_substrings'
+  'clean_uniform_substrings',
+  'remove_outliers',
+  'normalize_data',
+  'standardize_data',
+  'create_features',
+  'process_text',
+  'balance_data',
+  'reduce_dimensions'
 ];
 
 const ItemTypes = {
