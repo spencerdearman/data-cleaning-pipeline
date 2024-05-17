@@ -3,6 +3,12 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+:root {
+  --pipeline-step-size: 50px;
+  --pipeline-arrow-width: 50px;
+  --pipeline-arrow-size: 2px;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -20,7 +26,7 @@ code {
 .sidebar {
   overflow-y: auto;
   max-height: 100vh;
-  width: 300px; /* Increased sidebar width */
+  width: 400px; /* Restored sidebar width */
 }
 
 .pipeline-container {
@@ -39,10 +45,9 @@ code {
 
 .arrow {
   position: relative;
-  width: 50px;
-  height: 2px;
+  width: var(--pipeline-arrow-width);
+  height: var(--pipeline-arrow-size);
   background-color: #9ca3af;
-  top: -50%;
   margin-left: 6px; /* Adjusted to move right */
 }
 
