@@ -10,18 +10,31 @@ const PipelineVisualization = ({ pipeline, progress }) => {
     );
   }
 
+  const calculateStepProgress = (index) => {
+    return (index / pipeline.length) * 100;
+  };
+
   return (
     <div className="flex-1 p-4 bg-white">
       <h2 className="text-2xl font-bold mb-4">Pipeline Visualization</h2>
-      <div className="flex items-center">
+      <div className="flex items-center justify-center pipeline-container">
         {pipeline.map((step, index) => (
-          <div key={index} className="flex items-center">
-            <div className={`bg-blue-500 text-white p-4 rounded ${progress > (index / pipeline.length) * 100 ? 'bg-green-500' : ''}`}>
-              {step}
+          <div key={index} className="flex flex-col items-center pipeline-step">
+            <div className="flex items-center">
+              <div className={`relative flex items-center justify-center w-12 h-12 rounded-full border-2 ${progress >= calculateStepProgress(index) ? 'bg-green-500 border-green-500' : 'bg-blue-500 border-blue-500'}`}>
+                {progress >= calculateStepProgress(index) ? (
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                ) : (
+                  <span className="text-white">{index + 1}</span>
+                )}
+              </div>
+              {index < pipeline.length - 1 && (
+                <div className="flex-grow border-t-4 border-gray-400 mx-4"></div>
+              )}
             </div>
-            {index < pipeline.length - 1 && (
-              <div className="flex-grow border-t-4 border-gray-400 mx-4"></div>
-            )}
+            <div className="mt-2 text-center">{step}</div>
           </div>
         ))}
       </div>
