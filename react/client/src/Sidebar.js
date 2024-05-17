@@ -23,7 +23,7 @@ const ItemTypes = {
   TILE: 'tile',
 };
 
-const Tile = ({ option, index, moveTile, removeTile, numbered }) => {
+const Tile = ({ option, index, moveTile, removeTile }) => {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TILE,
     item: { option, index },
@@ -39,7 +39,7 @@ const Tile = ({ option, index, moveTile, removeTile, numbered }) => {
       style={{ opacity: isDragging ? 0.5 : 1, color: 'black' }}  // Set text color to black
       onClick={() => removeTile(index)}
     >
-      {numbered ? `${index + 1}. ${option}` : option}
+      {option}
     </div>
   );
 };
@@ -76,17 +76,16 @@ const Pipeline = ({ pipeline, setPipeline }) => {
             setPipeline(newPipeline);
           }}
           removeTile={(index) => setPipeline(pipeline.filter((_, i) => i !== index))}
-          numbered
         />
       ))}
     </div>
   );
 };
 
-const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, message, cleanedFile }) => {
+const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, message, cleanedFile, resetPipeline }) => {
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="bg-gray-800 text-white p-4 flex flex-col sidebar">
+      <div className="bg-gray-800 text-white w-64 p-4 flex flex-col sidebar">
         <h2 className="text-xl font-bold mb-4">Data Cleaning</h2>
         <form onSubmit={handleSubmit} className="flex flex-col">
           <input
@@ -95,7 +94,7 @@ const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, messag
             className="mb-4 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <Pipeline pipeline={pipeline} setPipeline={setPipeline} />
-          <div className="mb-4 overflow-y-auto">
+          <div className="mb-4">
             {cleaningOptions.filter(option => !pipeline.includes(option)).map((option, index) => (
               <Tile key={option} index={index} option={option} moveTile={() => {}} removeTile={() => {}} />
             ))}
@@ -105,6 +104,13 @@ const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, messag
             className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 w-full"
           >
             Upload and Clean
+          </button>
+          <button
+            type="button"
+            onClick={resetPipeline}
+            className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-700 w-full mt-2"
+          >
+            Reset
           </button>
         </form>
         {message && <p className="mt-4 text-xl text-center">{message}</p>}

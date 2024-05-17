@@ -10,20 +10,20 @@ const PipelineVisualization = ({ pipeline, progress }) => {
   if (pipeline.length === 0) {
     return (
       <div className="flex-1 p-4 bg-white">
-        <h2 className="text-2xl font-bold mb-4">Pipeline Visualization</h2>
-        <p>Create your pipeline</p>
+        <h2 className="text-2xl font-bold mb-8 text-center">Pipeline Visualization</h2>
+        <p className="mt-4">Create your pipeline</p>
       </div>
     );
   }
 
   const calculateStepProgress = (index) => {
-    return (index / pipeline.length) * 100;
+    return ((index + 1) / pipeline.length) * 100;
   };
 
   return (
     <div className="flex-1 p-4 bg-white">
-      <h2 className="text-2xl font-bold mb-4">Pipeline Visualization</h2>
-      <div className="flex items-center justify-center pipeline-container">
+      <h2 className="text-2xl font-bold mb-8 text-center">Pipeline Visualization</h2>
+      <div className="flex items-center justify-center pipeline-container mb-8">
         {pipeline.map((step, index) => (
           <div key={index} className="flex items-center pipeline-step">
             <div className={`relative flex items-center justify-center rounded-full border-2 ${progress >= calculateStepProgress(index) ? 'bg-green-500 border-green-500' : 'bg-blue-500 border-blue-500'}`} style={{ width: 'var(--pipeline-step-size)', height: 'var(--pipeline-step-size)' }}>
@@ -41,8 +41,8 @@ const PipelineVisualization = ({ pipeline, progress }) => {
           </div>
         ))}
       </div>
-      <div className="mt-4">
-        <p className="text-xl font-bold">Progress: {progress}%</p>
+      <div className="mt-8">
+        <p className="text-xl font-bold text-center mb-2">Progress: {progress}%</p>
         <div className="w-full bg-gray-200 rounded-full h-4">
           <div className="bg-blue-500 h-4 rounded-full" style={{ width: `${progress}%` }}></div>
         </div>

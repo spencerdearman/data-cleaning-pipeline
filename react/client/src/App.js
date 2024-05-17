@@ -7,8 +7,8 @@ const App = () => {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
   const [pipeline, setPipeline] = useState([]);
+  const [progress, setProgress] = useState(0);
   const [cleanedFile, setCleanedFile] = useState('');
-  const [progress, setProgress] = useState(0); // New state for progress
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -33,20 +33,23 @@ const App = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setProgress(percentCompleted); // Update progress
-        }
       });
       console.log('Response:', response.data);
       setMessage(response.data.message);
       setCleanedFile(response.data.cleaned_file);
-      setProgress(100); // Set progress to 100 when done
+      setProgress(100); // Update progress to 100% when the process is complete
     } catch (error) {
       console.error('Error uploading file:', error);
       setMessage(error.response?.data?.message || 'Error uploading file');
       setProgress(0); // Reset progress on error
     }
+  };
+
+  const resetPipeline = () => {
+    setPipeline([]);
+    setProgress(0);
+    setMessage('');
+    setCleanedFile('');
   };
 
   return (
@@ -58,8 +61,9 @@ const App = () => {
         setPipeline={setPipeline}
         message={message}
         cleanedFile={cleanedFile}
+        resetPipeline={resetPipeline}
       />
-      <PipelineVisualization pipeline={pipeline} progress={progress} /> {/* Pass progress */}
+      <PipelineVisualization pipeline={pipeline} progress={progress} />
     </div>
   );
 };
