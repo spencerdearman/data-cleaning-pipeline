@@ -6,9 +6,10 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+from hashlib import sha256
 
 # Load DataFrame
-fp = '../test-data/jobs/Uncleaned_DS_jobs.csv'
+fp = '../test-data/audible/audible_uncleaned.csv'
 df = pd.read_csv(fp)
 
 # Basic cleaning functions
@@ -165,6 +166,11 @@ def remove_highly_missing_columns(df, threshold=0.5):
     df = df.drop(columns=columns_to_remove)
     return df
 
+def anonymize_columns(df, columns_to_anonymize):
+    for col in columns_to_anonymize:
+        df[col] = df[col].apply(lambda x: sha256(x.encode()).hexdigest() if isinstance(x, str) else x)
+    return df
+
 # Decision-making function
 def analyze_and_clean(df):
     # Dictionary to store actions taken
@@ -262,16 +268,18 @@ def format_for_ml(df, target_column, threshold_missing=0.5):
 df, actions_taken = analyze_and_clean(df)
 print("Actions Taken:\n", actions_taken)
 
-target_column = 'rating'  # Replace with the actual target column name
-X, y = format_for_ml(df, target_column)
-print("X:", X.head())
 
-# Now you can perform train-test split and use the data for ML
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-train = True
+train = False
+anonymize = True
 
 if train:
+    target_column = ''  # Replace with the actual target column name
+    X, y = format_for_ml(df, target_column)
+    print("X:", X.head())
+
+    # Now you can perform train-test split and use the data for ML
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
     # Train a Random Forest model
     rf_model = RandomForestRegressor(random_state=42)
     rf_model.fit(X_train, y_train)
@@ -286,7 +294,12 @@ if train:
     print("Mean Squared Error:", mse)
     print("R2 Score:", r2)
 
+# Example of anonymizing columns
+if anonymize:
+    columns_to_anonymize = ['author first', 'author last']  # Replace with actual columns to anonymize
+    df = anonymize_columns(df, columns_to_anonymize)
+
 # Save the cleaned DataFrame and mappings
-save_to_csv(df, '../test-data/jobs/cleaned_jobs.csv')
+save_to_csv(df, '../test-data/audible/cleaned_audible.csv')
 print("Cleaned DataFrame:\n", df.head())
 print("Actions Taken:\n", actions_taken)
