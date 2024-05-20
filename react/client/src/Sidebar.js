@@ -115,7 +115,7 @@ const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, messag
         </form>
         {message && <p className="mt-4 text-xl text-center">{message}</p>}
         {cleanedFile && (
-          <a href={`http://127.0.0.1:5000/${cleanedFile}`} className="mt-4 text-xl text-blue-500">
+          <a href={`http://127.0.0.1:5000/${cleanedFile}`} className="bg-green-500 text-white py-2 px-4 rounded hover:bg-blue-700 text-center">
             Download Cleaned File
           </a>
         )}
