@@ -5,44 +5,32 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder
 
 # Load DataFrame
-fp = 'test-data/audible/audible_uncleaned.csv'
+fp = '../test-data/audible/audible_uncleaned.csv'
 df = pd.read_csv(fp)
 
 # Basic cleaning functions
-
-# Turning the columns to lower case
 def lower_case_columns(df):
     df.columns = df.columns.str.lower()
     return df
 
-# Finding missing values
 def find_missing_values(df):
     missing_values = df.isnull().sum()
     return missing_values
 
-# Fixing missing values
 def fix_missing_values(df):
-    # Separate numeric and non-numeric columns
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns
-    
-    # Impute missing values for numeric columns if they exist
     if not numeric_cols.empty:
         numeric_imputer = SimpleImputer(strategy='mean')
         df[numeric_cols] = numeric_imputer.fit_transform(df[numeric_cols])
-    
-    # Impute missing values for non-numeric columns if they exist
     if not non_numeric_cols.empty:
         non_numeric_imputer = SimpleImputer(strategy='most_frequent')
         df[non_numeric_cols] = non_numeric_imputer.fit_transform(df[non_numeric_cols])
-    
     return df
 
-# Remove duplicates
 def remove_duplicates(df):
     return df.drop_duplicates()
 
-# Label encoding
 def label_encode(df, columns, mappings):
     for col in columns:
         le = LabelEncoder()
@@ -50,11 +38,9 @@ def label_encode(df, columns, mappings):
         mappings[col] = {index: label for index, label in enumerate(le.classes_)}
     return df, mappings
 
-# Save to CSV
 def save_to_csv(df, filename):
     df.to_csv(filename, index=False)
 
-# Save mappings to CSV
 def save_mappings_to_csv(mappings, filename):
     all_mappings = []
     for col, mapping in mappings.items():
@@ -63,16 +49,14 @@ def save_mappings_to_csv(mappings, filename):
     mappings_df = pd.DataFrame(all_mappings)
     mappings_df.to_csv(filename, index=False)
 
-# Function to encode categorical columns with fewer than 20 unique categories
 def encode_categorical_columns(df, threshold=20):
     categorical_columns = df.select_dtypes(include=['object']).columns
     mappings = {}
     for col in categorical_columns:
-        if df[col].nunique() < threshold:
+        if df[col].nunique() < threshold and col not in ['name', 'author', 'narrator']:
             df, mappings = label_encode(df, [col], mappings)
     return df, mappings
 
-# Function to find uniform prefixes
 def find_uniform_prefixes(df):
     prefixes = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -85,14 +69,12 @@ def find_uniform_prefixes(df):
                     prefixes[col] = prefix
     return prefixes
 
-# Function to clean uniform prefixes
 def clean_uniform_prefixes(df, prefixes):
     for col, prefix in prefixes.items():
         pattern = re.compile(rf'^{re.escape(prefix)}', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
-# Function to find uniform postfixes
 def find_uniform_postfixes(df):
     postfixes = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -105,14 +87,12 @@ def find_uniform_postfixes(df):
                     postfixes[col] = postfix
     return postfixes
 
-# Function to clean uniform postfixes
 def clean_uniform_postfixes(df, postfixes):
     for col, postfix in postfixes.items():
         pattern = re.compile(rf'{re.escape(postfix)}$', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
-# Function to find uniform substrings
 def find_uniform_substrings(df):
     substrings = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -125,34 +105,138 @@ def find_uniform_substrings(df):
                     substrings[col] = substring
     return substrings
 
-# Function to clean uniform substrings
 def clean_uniform_substrings(df, substrings):
     for col, substring in substrings.items():
         pattern = re.compile(rf'{re.escape(substring)}', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
-# Apply the cleaning pipeline
-df = lower_case_columns(df)
-df = remove_duplicates(df)
-df, mappings = encode_categorical_columns(df)  # Encode columns before fixing missing values
-df = fix_missing_values(df)
+def split_caps_columns(df):
+    def split_caps(text):
+        # Split only on the pattern 'CapsCaps' without spaces in between
+        return re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', text)
 
-# Identify and clean uniform prefixes, postfixes, and substrings
-uniform_prefixes = find_uniform_prefixes(df)
-df = clean_uniform_prefixes(df, uniform_prefixes)
-uniform_postfixes = find_uniform_postfixes(df)
-df = clean_uniform_postfixes(df, uniform_postfixes)
-uniform_substrings = find_uniform_substrings(df)
-df = clean_uniform_substrings(df, uniform_substrings)
+    for col in df.columns:
+        # Apply the split only if no cell in the column contains spaces and matches the 'CapsCaps' pattern
+        if df[col].apply(lambda x: isinstance(x, str) and ' ' in x).any():
+            continue
+        mask = df[col].apply(lambda x: isinstance(x, str) and bool(re.search(r'[a-z][A-Z]', x)))
+        if mask.any():
+            split_series = df.loc[mask, col].apply(split_caps)
+            new_cols = split_series.str.split(' ', expand=True, n=1)
+            df[f'{col} first'] = new_cols[0]
+            df[f'{col} last'] = new_cols[1]
+            df = df.drop(columns=[col])
 
-# Save the cleaned DataFrame
-save_to_csv(df, 'cleaned_audible.csv')
-# Save the mappings DataFrame
-save_mappings_to_csv(mappings, 'audible_mappings.csv')
+    return df
 
+def remove_non_ascii_rows(df):
+    def is_ascii(s):
+        return all(ord(c) < 128 for c in s)
+    
+    mask = df.applymap(lambda x: isinstance(x, str) and is_ascii(x))
+    df = df[mask.all(axis=1)]
+    return df
+
+# New generalized functions
+def detect_and_remove_outliers(df, threshold=3):
+    numeric_cols = df.select_dtypes(include=[np.number])
+    z_scores = np.abs((numeric_cols - numeric_cols.mean()) / numeric_cols.std())
+    df_clean = df[(z_scores < threshold).all(axis=1)]
+    return df_clean
+
+def standardize_dates(df):
+    date_columns = [col for col in df.columns if 'date' in col.lower()]
+    common_date_formats = [
+        '%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y.%m.%d',
+        '%d-%m-%y', '%m-%d-%Y', '%m-%d-%y', '%m/%d/%y', '%d/%m/%y',
+        '%d-%b-%Y', '%b-%d-%Y'
+    ]
+
+    for col in date_columns:
+        for fmt in common_date_formats:
+            try:
+                df[col] = pd.to_datetime(df[col], format=fmt, errors='raise')
+                break
+            except ValueError:
+                continue
+        # Convert to a uniform format after parsing
+        df[col] = df[col].dt.strftime('%Y-%m-%d')
+    return df
+
+def remove_highly_missing_columns(df, threshold=0.5):
+    missing_fraction = df.isnull().mean()
+    columns_to_remove = missing_fraction[missing_fraction > threshold].index
+    df = df.drop(columns=columns_to_remove)
+    return df
+
+# Decision-making function
+def analyze_and_clean(df):
+    # Dictionary to store actions taken
+    actions_taken = {}
+
+    df = lower_case_columns(df)
+    actions_taken['lower_case_columns'] = True
+
+    # Remove non-ASCII rows
+    df = remove_non_ascii_rows(df)
+    actions_taken['remove_non_ascii_rows'] = True
+
+    # Check for missing values
+    if df.isnull().values.any():
+        df = fix_missing_values(df)
+        actions_taken['fix_missing_values'] = True
+
+    # Check for duplicates
+    if df.duplicated().any():
+        df = remove_duplicates(df)
+        actions_taken['remove_duplicates'] = True
+
+    # Check for categorical columns with less than threshold unique values for encoding
+    categorical_columns = df.select_dtypes(include=['object']).columns
+    if any(df[col].nunique() < 20 and col not in ['name', 'author', 'narrator'] for col in categorical_columns):
+        df, mappings = encode_categorical_columns(df)
+        actions_taken['encode_categorical_columns'] = True
+
+    # Split columns with 'CapsCaps' pattern
+    df = split_caps_columns(df)
+    actions_taken['split_caps_columns'] = True
+
+    # Detect and remove outliers
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    if not numeric_cols.empty:
+        df = detect_and_remove_outliers(df)
+        actions_taken['detect_and_remove_outliers'] = True
+
+    # Identify and clean uniform prefixes, postfixes, and substrings
+    uniform_prefixes = find_uniform_prefixes(df)
+    if uniform_prefixes:
+        df = clean_uniform_prefixes(df, uniform_prefixes)
+        actions_taken['clean_uniform_prefixes'] = uniform_prefixes
+
+    uniform_postfixes = find_uniform_postfixes(df)
+    if uniform_postfixes:
+        df = clean_uniform_postfixes(df, uniform_postfixes)
+        actions_taken['clean_uniform_postfixes'] = uniform_postfixes
+
+    uniform_substrings = find_uniform_substrings(df)
+    if uniform_substrings:
+        df = clean_uniform_substrings(df, uniform_substrings)
+        actions_taken['clean_uniform_substrings'] = uniform_substrings
+
+    # Remove columns with high missing values
+    df = remove_highly_missing_columns(df)
+    actions_taken['remove_highly_missing_columns'] = True
+
+    # Standardize date formats
+    df = standardize_dates(df)
+    actions_taken['standardize_dates'] = True
+
+    return df, actions_taken
+
+df, actions_taken = analyze_and_clean(df)
+
+# Save the cleaned DataFrame and mappings
+save_to_csv(df, '../test-data/audible/cleaned_audible.csv')
 print("Cleaned DataFrame:\n", df.head())
-print("Mappings:\n", mappings)
-print("Uniform Prefixes Cleaned:\n", uniform_prefixes)
-print("Uniform Postfixes Cleaned:\n", uniform_postfixes)
-print("Uniform Substrings Cleaned:\n", uniform_substrings)
+print("Actions Taken:\n", actions_taken)
