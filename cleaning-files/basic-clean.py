@@ -2,10 +2,13 @@ import pandas as pd
 import numpy as np
 import re
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Load DataFrame
-fp = '../test-data/audible/audible_uncleaned.csv'
+fp = '../test-data/jobs/Uncleaned_DS_jobs.csv'
 df = pd.read_csv(fp)
 
 # Basic cleaning functions
@@ -130,14 +133,6 @@ def split_caps_columns(df):
 
     return df
 
-def remove_non_ascii_rows(df):
-    def is_ascii(s):
-        return all(ord(c) < 128 for c in s)
-    
-    mask = df.applymap(lambda x: isinstance(x, str) and is_ascii(x))
-    df = df[mask.all(axis=1)]
-    return df
-
 # New generalized functions
 def detect_and_remove_outliers(df, threshold=3):
     numeric_cols = df.select_dtypes(include=[np.number])
@@ -177,11 +172,7 @@ def analyze_and_clean(df):
 
     df = lower_case_columns(df)
     actions_taken['lower_case_columns'] = True
-
-    # Remove non-ASCII rows
-    df = remove_non_ascii_rows(df)
-    actions_taken['remove_non_ascii_rows'] = True
-
+    
     # Check for missing values
     if df.isnull().values.any():
         df = fix_missing_values(df)
@@ -234,9 +225,68 @@ def analyze_and_clean(df):
 
     return df, actions_taken
 
+def format_for_ml(df, target_column, threshold_missing=0.5):
+    # Drop columns with a single unique value
+    for col in df.columns:
+        if df[col].nunique() == 1:
+            df = df.drop(columns=[col])
+    
+    # Drop columns with a high percentage of missing values
+    missing_fraction = df.isnull().mean()
+    columns_to_remove = missing_fraction[missing_fraction > threshold_missing].index
+    df = df.drop(columns=columns_to_remove)
+    
+    # Drop columns that are unlikely to be useful for ML (e.g., IDs, names)
+    columns_to_remove = []
+    irrelevant_keywords = ['id', 'name', 'identifier', 'code', 'language', 'zip', 'address', 'phone', 'email', 'city', 'state', 'country']
+    for col in df.columns:
+        if df[col].dtype == 'object' and df[col].str.contains(r'^\d+$').any():
+            columns_to_remove.append(col)
+        elif any(keyword in col.lower() for keyword in irrelevant_keywords):
+            columns_to_remove.append(col)
+    df = df.drop(columns=columns_to_remove)
+    
+    # Separate target and features
+    y = df[target_column]
+    X = df.drop(columns=[target_column])
+    
+    # Handle categorical features
+    X = pd.get_dummies(X)
+    
+    # Standardize numerical features
+    scaler = StandardScaler()
+    X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+    
+    return X_scaled, y
+
 df, actions_taken = analyze_and_clean(df)
+print("Actions Taken:\n", actions_taken)
+
+target_column = 'rating'  # Replace with the actual target column name
+X, y = format_for_ml(df, target_column)
+print("X:", X.head())
+
+# Now you can perform train-test split and use the data for ML
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+train = True
+
+if train:
+    # Train a Random Forest model
+    rf_model = RandomForestRegressor(random_state=42)
+    rf_model.fit(X_train, y_train)
+
+    # Make predictions
+    y_pred = rf_model.predict(X_test)
+
+    # Evaluate the model
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    print("Mean Squared Error:", mse)
+    print("R2 Score:", r2)
 
 # Save the cleaned DataFrame and mappings
-save_to_csv(df, '../test-data/audible/cleaned_audible.csv')
+save_to_csv(df, '../test-data/jobs/cleaned_jobs.csv')
 print("Cleaned DataFrame:\n", df.head())
 print("Actions Taken:\n", actions_taken)
