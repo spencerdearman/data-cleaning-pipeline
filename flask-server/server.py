@@ -7,8 +7,9 @@ import json
 import logging
 from werkzeug.utils import secure_filename
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
 import re
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from hashlib import sha256
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +19,7 @@ app.config['UPLOAD_FOLDER'] = 'static/files'
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+# Basic cleaning functions
 def lower_case_columns(df):
     df.columns = df.columns.str.lower()
     return df
@@ -62,7 +64,7 @@ def encode_categorical_columns(df, threshold=20):
     categorical_columns = df.select_dtypes(include=['object']).columns
     mappings = {}
     for col in categorical_columns:
-        if df[col].nunique() < threshold:
+        if df[col].nunique() < threshold and col not in ['name', 'author', 'narrator']:
             df, mappings = label_encode(df, [col], mappings)
     return df, mappings
 
@@ -120,6 +122,136 @@ def clean_uniform_substrings(df, substrings):
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
+def split_caps_columns(df):
+    def split_caps(text):
+        return re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', text)
+
+    for col in df.columns:
+        if df[col].apply(lambda x: isinstance(x, str) and ' ' in x).any():
+            continue
+        mask = df[col].apply(lambda x: isinstance(x, str) and bool(re.search(r'[a-z][A-Z]', x)))
+        if mask.any():
+            split_series = df.loc[mask, col].apply(split_caps)
+            new_cols = split_series.str.split(' ', expand=True, n=1)
+            df[f'{col} first'] = new_cols[0]
+            df[f'{col} last'] = new_cols[1]
+            df = df.drop(columns=[col])
+
+    return df
+
+def detect_and_remove_outliers(df, threshold=3):
+    numeric_cols = df.select_dtypes(include=[np.number])
+    z_scores = np.abs((numeric_cols - numeric_cols.mean()) / numeric_cols.std())
+    df_clean = df[(z_scores < threshold).all(axis=1)]
+    return df_clean
+
+def standardize_dates(df):
+    date_columns = [col for col in df.columns if 'date' in col.lower()]
+    common_date_formats = [
+        '%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y.%m.%d',
+        '%d-%m-%y', '%m-%d-%Y', '%m-%d-%y', '%m/%d/%y', '%d/%m/%y',
+        '%d-%b-%Y', '%b-%d-%Y'
+    ]
+
+    for col in date_columns:
+        for fmt in common_date_formats:
+            try:
+                df[col] = pd.to_datetime(df[col], format=fmt, errors='raise')
+                break
+            except ValueError:
+                continue
+        df[col] = df[col].dt.strftime('%Y-%m-%d')
+    return df
+
+def remove_highly_missing_columns(df, threshold=0.5):
+    missing_fraction = df.isnull().mean()
+    columns_to_remove = missing_fraction[missing_fraction > threshold].index
+    df = df.drop(columns=columns_to_remove)
+    return df
+
+def anonymize_columns(df, columns_to_anonymize):
+    for col in columns_to_anonymize:
+        df[col] = df[col].apply(lambda x: sha256(x.encode()).hexdigest() if isinstance(x, str) else x)
+    return df
+
+def analyze_and_clean(df):
+    actions_taken = {}
+
+    df = lower_case_columns(df)
+    actions_taken['Lower Case Columns'] = True
+    
+    if df.isnull().values.any():
+        df = fix_missing_values(df)
+        actions_taken['Fix Missing Values'] = True
+
+    if df.duplicated().any():
+        df = remove_duplicates(df)
+        actions_taken['Remove Duplicates'] = True
+
+    categorical_columns = df.select_dtypes(include=['object']).columns
+    if any(df[col].nunique() < 20 and col not in ['name', 'author', 'narrator'] for col in categorical_columns):
+        df, mappings = encode_categorical_columns(df)
+        actions_taken['Encode Categorical Columns'] = True
+
+    df = split_caps_columns(df)
+    actions_taken['Split Caps Columns'] = True
+
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    if not numeric_cols.empty:
+        df = detect_and_remove_outliers(df)
+        actions_taken['Detect And Remove Outliers'] = True
+
+    uniform_prefixes = find_uniform_prefixes(df)
+    if uniform_prefixes:
+        df = clean_uniform_prefixes(df, uniform_prefixes)
+        actions_taken['Clean Uniform Prefixes'] = uniform_prefixes
+
+    uniform_postfixes = find_uniform_postfixes(df)
+    if uniform_postfixes:
+        df = clean_uniform_postfixes(df, uniform_postfixes)
+        actions_taken['Clean Uniform Postfixes'] = uniform_postfixes
+
+    uniform_substrings = find_uniform_substrings(df)
+    if uniform_substrings:
+        df = clean_uniform_substrings(df, uniform_substrings)
+        actions_taken['Clean Uniform Substrings'] = uniform_substrings
+
+    df = remove_highly_missing_columns(df)
+    actions_taken['Remove Highly Missing Columns'] = True
+
+    df = standardize_dates(df)
+    actions_taken['Standardize Dates'] = True
+
+    return df, actions_taken
+
+def format_for_ml(df, target_column, threshold_missing=0.5):
+    for col in df.columns:
+        if df[col].nunique() == 1:
+            df = df.drop(columns=[col])
+    
+    missing_fraction = df.isnull().mean()
+    columns_to_remove = missing_fraction[missing_fraction > threshold_missing].index
+    df = df.drop(columns=columns_to_remove)
+    
+    columns_to_remove = []
+    irrelevant_keywords = ['id', 'name', 'identifier', 'code', 'language', 'zip', 'address', 'phone', 'email', 'city', 'state', 'country']
+    for col in df.columns:
+        if df[col].dtype == 'object' and df[col].str.contains(r'^\d+$').any():
+            columns_to_remove.append(col)
+        elif any(keyword in col.lower() for keyword in irrelevant_keywords):
+            columns_to_remove.append(col)
+    df = df.drop(columns=columns_to_remove)
+    
+    y = df[target_column]
+    X = df.drop(columns=[target_column])
+    
+    X = pd.get_dummies(X)
+    
+    scaler = StandardScaler()
+    X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+    
+    return X_scaled, y
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -133,7 +265,14 @@ def upload_file():
             return jsonify({'message': 'No selected file'}), 400
 
         options = json.loads(request.form.get('options', '[]'))
+        anonymize = json.loads(request.form.get('anonymize', 'false'))
+        anonymize_columns = request.form.get('anonymize_columns', '')
+        ml_format = json.loads(request.form.get('ml_format', 'false'))
+        target_column = request.form.get('target_column', '')
+
         logging.debug(f"Received options: {options}")
+        logging.debug(f"Anonymize: {anonymize}, Anonymize Columns: {anonymize_columns}")
+        logging.debug(f"ML Format: {ml_format}, Target Column: {target_column}")
 
         logging.debug(f"Received file: {file.filename}")
         filename = secure_filename(file.filename)
@@ -143,27 +282,36 @@ def upload_file():
         df = pd.read_csv(filepath)
         logging.debug(f"DataFrame head: \n{df.head()}")
 
-        if 'lower_case_columns' in options:
+        if 'Lower Case Columns' in options:
             df = lower_case_columns(df)
-        if 'remove_duplicates' in options:
+        if 'Remove Duplicates' in options:
             df = remove_duplicates(df)
-        if 'encode_categorical_columns' in options:
+        if 'Encode Categorical Columns' in options:
             df, mappings = encode_categorical_columns(df)
             save_mappings_to_csv(mappings, 'audible_mappings.csv')
-        if 'fix_missing_values' in options:
+        if 'Fix Missing Values' in options:
             df = fix_missing_values(df)
-        if 'clean_uniform_prefixes' in options:
+        if 'Clean Uniform Prefixes' in options:
             uniform_prefixes = find_uniform_prefixes(df)
             df = clean_uniform_prefixes(df, uniform_prefixes)
-        if 'clean_uniform_postfixes' in options:
+        if 'Clean Uniform Postfixes' in options:
             uniform_postfixes = find_uniform_postfixes(df)
             df = clean_uniform_postfixes(df, uniform_postfixes)
-        if 'clean_uniform_substrings' in options:
+        if 'Clean Uniform Substrings' in options:
             uniform_substrings = find_uniform_substrings(df)
             df = clean_uniform_substrings(df, uniform_substrings)
-
-        cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
-        save_to_csv(df, cleaned_filepath)
+        
+        if anonymize and anonymize_columns:
+            columns_to_anonymize = [col.strip() for col in anonymize_columns.split(',')]
+            df = anonymize_columns(df, columns_to_anonymize)
+        
+        if ml_format and target_column:
+            X, y = format_for_ml(df, target_column)
+            cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
+            save_to_csv(X, cleaned_filepath)
+        else:
+            cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
+            save_to_csv(df, cleaned_filepath)
 
         return jsonify({'message': 'File uploaded and read successfully', 'cleaned_file': cleaned_filepath})
     except Exception as e:

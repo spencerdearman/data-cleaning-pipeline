@@ -4,13 +4,17 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 const cleaningOptions = [
-  'lower_case_columns',
-  'remove_duplicates',
-  'encode_categorical_columns',
-  'fix_missing_values',
-  'clean_uniform_prefixes',
-  'clean_uniform_postfixes',
-  'clean_uniform_substrings'
+  'Lower Case Columns',
+  'Remove Duplicates',
+  'Encode Categorical Columns',
+  'Fix Missing Values',
+  'Clean Uniform Prefixes',
+  'Clean Uniform Postfixes',
+  'Clean Uniform Substrings',
+  'Detect And Remove Outliers',
+  'Standardize Dates',
+  'Remove Highly Missing Columns',
+  'Anonymize Columns'
 ];
 
 const ItemTypes = {
