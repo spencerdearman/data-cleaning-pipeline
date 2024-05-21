@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { cleaningOptionsMap } from './utils';
@@ -7,7 +7,6 @@ const ItemTypes = {
   TILE: 'tile',
 };
 
-// Convert the map to a more usable format for the component
 const displayToOptionMap = Object.entries(cleaningOptionsMap).reduce((acc, [key, value]) => {
   acc[value] = key;
   return acc;
@@ -76,6 +75,11 @@ const Pipeline = ({ pipeline, setPipeline }) => {
 const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, message, cleanedFile, resetPipeline }) => {
   const availableOptions = Object.keys(cleaningOptionsMap).filter(option => !pipeline.includes(cleaningOptionsMap[option]));
 
+  const handleAddAllOptions = () => {
+    const allOptions = Object.values(cleaningOptionsMap);
+    setPipeline(allOptions);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="bg-gray-800 text-white w-64 p-4 flex flex-col sidebar">
@@ -86,6 +90,13 @@ const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, messag
             onChange={handleFileChange}
             className="mb-4 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <button
+            type="button"
+            onClick={handleAddAllOptions}
+            className="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-700 w-full mb-4"
+          >
+            Automatic Clean
+          </button>
           <Pipeline pipeline={pipeline} setPipeline={setPipeline} />
           <div className="mb-4">
             {availableOptions.map((option, index) => (
