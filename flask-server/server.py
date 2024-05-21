@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import os
 import json
-import logging
 import re
 from flask import Flask, request, jsonify, send_from_directory
 from sklearn.preprocessing import LabelEncoder
@@ -175,9 +174,12 @@ def remove_highly_missing_columns(df, threshold=0.5):
     return df
 
 # Anonymize specified columns by hashing their values
-def anonymize_columns(df, columns_to_anonymize):
-    for col in columns_to_anonymize:
-        df[col] = df[col].apply(lambda x: sha256(x.encode()).hexdigest() if isinstance(x, str) else x)
+def anonymize_columns(df):
+    keywords = ['name', 'key', 'identifier', 'email', 'phone', 'zip', 
+                'postal', 'code', 'security', 'id', 'ip', 'ssn']
+    for col in df.columns:
+        if any(keyword in col.lower() for keyword in keywords):
+            df[col] = df[col].apply(lambda x: sha256(x.encode()).hexdigest() if isinstance(x, str) else x)
     return df
 
 @app.route('/upload', methods=['POST'])
@@ -224,6 +226,8 @@ def upload_file():
             df = standardize_dates(df)
         if 'remove_highly_missing_columns' in options:
             df = remove_highly_missing_columns(df)
+        if 'anonymize_columns' in options:
+            df = anonymize_columns(df)
 
         cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
         save_to_csv(df, cleaned_filepath)

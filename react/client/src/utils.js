@@ -9,7 +9,8 @@ export const cleaningOptionsMap = {
     'Split Caps Columns': 'split_caps_columns',
     'Detect and Remove Outliers': 'detect_and_remove_outliers',
     'Standardize Dates': 'standardize_dates',
-    'Remove Highly Missing Columns': 'remove_highly_missing_columns'
+    'Remove Highly Missing Columns': 'remove_highly_missing_columns',
+    'Anonymize Columns': 'anonymize_columns',
   };
   
   export const cleaningOptions = Object.keys(cleaningOptionsMap);

@@ -14,7 +14,8 @@ const cleaningOptions = [
   'split_caps_columns',
   'detect_and_remove_outliers',
   'standardize_dates',
-  'remove_highly_missing_columns'
+  'remove_highly_missing_columns',
+  'anonymize_columns'
 ];
 const ItemTypes = {
   TILE: 'tile',
