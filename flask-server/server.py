@@ -1,14 +1,14 @@
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 import pandas as pd
 import numpy as np
 import os
 import json
 import logging
+import re
+from flask import Flask, request, jsonify, send_from_directory
+from sklearn.preprocessing import LabelEncoder
 from werkzeug.utils import secure_filename
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
-import re
+from flask_cors import CORS
 from hashlib import sha256
 
 app = Flask(__name__)
