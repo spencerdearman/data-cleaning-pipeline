@@ -16,9 +16,6 @@ CORS(app)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['UPLOAD_FOLDER'] = 'static/files'
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
 # Convert all column names to lower case
 def lower_case_columns(df):
     df.columns = df.columns.str.lower()
@@ -45,35 +42,24 @@ def fix_missing_values(df):
 def remove_duplicates(df):
     return df.drop_duplicates()
 
-# Label encode specified columns and save the mappings
-def label_encode(df, columns, mappings):
+# Label encode specified columns
+def label_encode(df, columns):
     for col in columns:
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col])
-        mappings[col] = {index: label for index, label in enumerate(le.classes_)}
-    return df, mappings
+    return df
 
 # Save the dataframe to a CSV file
 def save_to_csv(df, filename):
     df.to_csv(filename, index=False)
 
-# Save label encoding mappings to a CSV file
-def save_mappings_to_csv(mappings, filename):
-    all_mappings = []
-    for col, mapping in mappings.items():
-        for index, label in mapping.items():
-            all_mappings.append({'column': col, 'numeric_value': index, 'category': label})
-    mappings_df = pd.DataFrame(all_mappings)
-    mappings_df.to_csv(filename, index=False)
-
 # Encode categorical columns with fewer than a threshold number of unique values
 def encode_categorical_columns(df, threshold=20):
     categorical_columns = df.select_dtypes(include=['object']).columns
-    mappings = {}
     for col in categorical_columns:
         if df[col].nunique() < threshold:
-            df, mappings = label_encode(df, [col], mappings)
-    return df, mappings
+            df = label_encode(df, [col])
+    return df
 
 # Find uniform prefixes in string columns
 def find_uniform_prefixes(df):
@@ -195,36 +181,30 @@ def anonymize_columns(df, columns_to_anonymize):
     return df
 
 @app.route('/upload', methods=['POST'])
+
+# Handle file upload and apply data cleaning options
 def upload_file():
-    """Handle file upload and apply data cleaning options."""
     try:
-        logging.debug("Received file upload request")
         if 'file' not in request.files:
-            logging.error("No file part in the request")
             return jsonify({'message': 'No file part in the request'}), 400
         file = request.files['file']
         if file.filename == '':
-            logging.error("No selected file")
             return jsonify({'message': 'No selected file'}), 400
 
         options = json.loads(request.form.get('options', '[]'))
-        logging.debug(f"Received options: {options}")
 
-        logging.debug(f"Received file: {file.filename}")
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
         df = pd.read_csv(filepath)
-        logging.debug(f"DataFrame head: \n{df.head()}")
 
         if 'lower_case_columns' in options:
             df = lower_case_columns(df)
         if 'remove_duplicates' in options:
             df = remove_duplicates(df)
         if 'encode_categorical_columns' in options:
-            df, mappings = encode_categorical_columns(df)
-            save_mappings_to_csv(mappings, 'audible_mappings.csv')
+            df = encode_categorical_columns(df)
         if 'fix_missing_values' in options:
             df = fix_missing_values(df)
         if 'clean_uniform_prefixes' in options:
@@ -250,12 +230,12 @@ def upload_file():
 
         return jsonify({'message': 'File uploaded and read successfully', 'cleaned_file': cleaned_filepath})
     except Exception as e:
-        logging.error(f"Error processing file: {str(e)}")
         return jsonify({'message': f'Error processing file: {str(e)}'}), 500
 
 @app.route('/static/files/<filename>')
+
+# Serve a file from the static files directory
 def download_file(filename):
-    """Serve a file from the static files directory."""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':

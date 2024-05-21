@@ -20,7 +20,7 @@ const ItemTypes = {
   TILE: 'tile',
 };
 
-const Tile = ({ option, index, moveTile, removeTile }) => {
+const Tile = ({ option, index, removeTile }) => {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TILE,
     item: { option, index },
