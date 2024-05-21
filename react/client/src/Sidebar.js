@@ -1,26 +1,19 @@
 import React from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
-const cleaningOptions = [
-  'lower_case_columns',
-  'remove_duplicates',
-  'encode_categorical_columns',
-  'fix_missing_values',
-  'clean_uniform_prefixes',
-  'clean_uniform_postfixes',
-  'clean_uniform_substrings',
-  'split_caps_columns',
-  'detect_and_remove_outliers',
-  'standardize_dates',
-  'remove_highly_missing_columns'
-];
+import { cleaningOptionsMap } from './utils';
 
 const ItemTypes = {
   TILE: 'tile',
 };
 
-const Tile = ({ option, index, moveTile, removeTile }) => {
+// Convert the map to a more usable format for the component
+const displayToOptionMap = Object.entries(cleaningOptionsMap).reduce((acc, [key, value]) => {
+  acc[value] = key;
+  return acc;
+}, {});
+
+const Tile = ({ displayName, option, index, moveTile, removeTile }) => {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TILE,
     item: { option, index },
@@ -33,10 +26,10 @@ const Tile = ({ option, index, moveTile, removeTile }) => {
     <div
       ref={drag}
       className={`p-2 mb-2 rounded cursor-pointer shadow-md ${isDragging ? 'bg-gray-300' : 'bg-blue-200'}`}
-      style={{ opacity: isDragging ? 0.5 : 1, color: 'black' }}  // Set text color to black
+      style={{ opacity: isDragging ? 0.5 : 1, color: 'black' }}
       onClick={() => removeTile(index)}
     >
-      {option}
+      {displayName}
     </div>
   );
 };
@@ -66,6 +59,7 @@ const Pipeline = ({ pipeline, setPipeline }) => {
           key={index}
           index={index}
           option={option}
+          displayName={displayToOptionMap[option]}
           moveTile={(dragIndex, hoverIndex) => {
             const newPipeline = Array.from(pipeline);
             const [movedTile] = newPipeline.splice(dragIndex, 1);
@@ -80,6 +74,8 @@ const Pipeline = ({ pipeline, setPipeline }) => {
 };
 
 const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, message, cleanedFile, resetPipeline }) => {
+  const availableOptions = Object.keys(cleaningOptionsMap).filter(option => !pipeline.includes(cleaningOptionsMap[option]));
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="bg-gray-800 text-white w-64 p-4 flex flex-col sidebar">
@@ -92,8 +88,8 @@ const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, messag
           />
           <Pipeline pipeline={pipeline} setPipeline={setPipeline} />
           <div className="mb-4">
-            {cleaningOptions.filter(option => !pipeline.includes(option)).map((option, index) => (
-              <Tile key={option} index={index} option={option} moveTile={() => {}} removeTile={() => {}} />
+            {availableOptions.map((option, index) => (
+              <Tile key={option} index={index} option={cleaningOptionsMap[option]} displayName={option} moveTile={() => {}} removeTile={() => {}} />
             ))}
           </div>
           <button
