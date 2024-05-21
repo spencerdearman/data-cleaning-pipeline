@@ -1,0 +1,37 @@
+column,numeric_value,category
+size,0,-1
+size,1,1 to 50 employees
+size,2,10000+ employees
+size,3,1001 to 5000 employees
+size,4,201 to 500 employees
+size,5,5001 to 10000 employees
+size,6,501 to 1000 employees
+size,7,51 to 200 employees
+size,8,Unknown
+type of ownership,0,-1
+type of ownership,1,College / University
+type of ownership,2,Company - Private
+type of ownership,3,Company - Public
+type of ownership,4,Contract
+type of ownership,5,Government
+type of ownership,6,Hospital
+type of ownership,7,Nonprofit Organization
+type of ownership,8,Other Organization
+type of ownership,9,Private Practice / Firm
+type of ownership,10,Self-employed
+type of ownership,11,Subsidiary or Business Segment
+type of ownership,12,Unknown
+revenue,0,$1 to $2 billion (USD)
+revenue,1,$1 to $5 million (USD)
+revenue,2,$10 to $25 million (USD)
+revenue,3,$10+ billion (USD)
+revenue,4,$100 to $500 million (USD)
+revenue,5,$2 to $5 billion (USD)
+revenue,6,$25 to $50 million (USD)
+revenue,7,$5 to $10 billion (USD)
+revenue,8,$5 to $10 million (USD)
+revenue,9,$50 to $100 million (USD)
+revenue,10,$500 million to $1 billion (USD)
+revenue,11,-1
+revenue,12,Less than $1 million (USD)
+revenue,13,Unknown / Non-Applicable

@@ -19,14 +19,17 @@ app.config['UPLOAD_FOLDER'] = 'static/files'
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+# Convert all column names to lower case
 def lower_case_columns(df):
     df.columns = df.columns.str.lower()
     return df
 
+# Find the number of missing values in each column
 def find_missing_values(df):
     missing_values = df.isnull().sum()
     return missing_values
 
+# Fix missing values by imputing mean for numeric columns and most frequent value for non-numeric columns
 def fix_missing_values(df):
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns
@@ -38,9 +41,11 @@ def fix_missing_values(df):
         df[non_numeric_cols] = non_numeric_imputer.fit_transform(df[non_numeric_cols])
     return df
 
+# Remove duplicate rows from the dataframe
 def remove_duplicates(df):
     return df.drop_duplicates()
 
+# Label encode specified columns and save the mappings
 def label_encode(df, columns, mappings):
     for col in columns:
         le = LabelEncoder()
@@ -48,9 +53,11 @@ def label_encode(df, columns, mappings):
         mappings[col] = {index: label for index, label in enumerate(le.classes_)}
     return df, mappings
 
+# Save the dataframe to a CSV file
 def save_to_csv(df, filename):
     df.to_csv(filename, index=False)
 
+# Save label encoding mappings to a CSV file
 def save_mappings_to_csv(mappings, filename):
     all_mappings = []
     for col, mapping in mappings.items():
@@ -59,6 +66,7 @@ def save_mappings_to_csv(mappings, filename):
     mappings_df = pd.DataFrame(all_mappings)
     mappings_df.to_csv(filename, index=False)
 
+# Encode categorical columns with fewer than a threshold number of unique values
 def encode_categorical_columns(df, threshold=20):
     categorical_columns = df.select_dtypes(include=['object']).columns
     mappings = {}
@@ -67,6 +75,7 @@ def encode_categorical_columns(df, threshold=20):
             df, mappings = label_encode(df, [col], mappings)
     return df, mappings
 
+# Find uniform prefixes in string columns
 def find_uniform_prefixes(df):
     prefixes = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -79,12 +88,14 @@ def find_uniform_prefixes(df):
                     prefixes[col] = prefix
     return prefixes
 
+# Remove uniform prefixes from string columns
 def clean_uniform_prefixes(df, prefixes):
     for col, prefix in prefixes.items():
         pattern = re.compile(rf'^{re.escape(prefix)}', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
+# Find uniform postfixes in string columns
 def find_uniform_postfixes(df):
     postfixes = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -97,12 +108,14 @@ def find_uniform_postfixes(df):
                     postfixes[col] = postfix
     return postfixes
 
+# Remove uniform postfixes from string columns
 def clean_uniform_postfixes(df, postfixes):
     for col, postfix in postfixes.items():
         pattern = re.compile(rf'{re.escape(postfix)}$', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
+# Find uniform substrings in string columns
 def find_uniform_substrings(df):
     substrings = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -115,12 +128,14 @@ def find_uniform_substrings(df):
                     substrings[col] = substring
     return substrings
 
+# Remove uniform substrings from string columns
 def clean_uniform_substrings(df, substrings):
     for col, substring in substrings.items():
         pattern = re.compile(rf'{re.escape(substring)}', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
+# Split column names and string values based on camel case pattern
 def split_caps_columns(df):
     def split_caps(text):
         # Split only on the pattern 'CapsCaps' without spaces in between
@@ -140,20 +155,19 @@ def split_caps_columns(df):
 
     return df
 
-# New generalized functions
+# Detect and remove outliers in numeric columns based on Z-scores
 def detect_and_remove_outliers(df, threshold=3):
     numeric_cols = df.select_dtypes(include=[np.number])
     z_scores = np.abs((numeric_cols - numeric_cols.mean()) / numeric_cols.std())
     df_clean = df[(z_scores < threshold).all(axis=1)]
     return df_clean
 
+# Standardize date columns to a uniform format
 def standardize_dates(df):
     date_columns = [col for col in df.columns if 'date' in col.lower()]
-    common_date_formats = [
-        '%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y.%m.%d',
-        '%d-%m-%y', '%m-%d-%Y', '%m-%d-%y', '%m/%d/%y', '%d/%m/%y',
-        '%d-%b-%Y', '%b-%d-%Y'
-    ]
+    common_date_formats = ['%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y.%m.%d', 
+                           '%d-%m-%y', '%m-%d-%Y', '%m-%d-%y', '%m/%d/%y', '%d/%m/%y',
+                           '%d-%b-%Y', '%b-%d-%Y']
 
     for col in date_columns:
         for fmt in common_date_formats:
@@ -162,16 +176,19 @@ def standardize_dates(df):
                 break
             except ValueError:
                 continue
+
         # Convert to a uniform format after parsing
         df[col] = df[col].dt.strftime('%Y-%m-%d')
     return df
 
+# Remove columns with a high percentage of missing values
 def remove_highly_missing_columns(df, threshold=0.5):
     missing_fraction = df.isnull().mean()
     columns_to_remove = missing_fraction[missing_fraction > threshold].index
     df = df.drop(columns=columns_to_remove)
     return df
 
+# Anonymize specified columns by hashing their values
 def anonymize_columns(df, columns_to_anonymize):
     for col in columns_to_anonymize:
         df[col] = df[col].apply(lambda x: sha256(x.encode()).hexdigest() if isinstance(x, str) else x)
@@ -179,6 +196,7 @@ def anonymize_columns(df, columns_to_anonymize):
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    """Handle file upload and apply data cleaning options."""
     try:
         logging.debug("Received file upload request")
         if 'file' not in request.files:
@@ -237,6 +255,7 @@ def upload_file():
 
 @app.route('/static/files/<filename>')
 def download_file(filename):
+    """Serve a file from the static files directory."""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
