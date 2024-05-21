@@ -10,13 +10,10 @@ const cleaningOptions = [
   'clean_uniform_prefixes',
   'clean_uniform_postfixes',
   'clean_uniform_substrings',
-  'remove_outliers',
-  'normalize_data',
-  'standardize_data',
-  'create_features',
-  'process_text',
-  'balance_data',
-  'reduce_dimensions'
+  'split_caps_columns',
+  'detect_and_remove_outliers',
+  'standardize_dates',
+  'remove_highly_missing_columns'
 ];
 
 const ItemTypes = {

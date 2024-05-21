@@ -10,9 +10,12 @@ const cleaningOptions = [
   'fix_missing_values',
   'clean_uniform_prefixes',
   'clean_uniform_postfixes',
-  'clean_uniform_substrings'
+  'clean_uniform_substrings',
+  'split_caps_columns',
+  'detect_and_remove_outliers',
+  'standardize_dates',
+  'remove_highly_missing_columns'
 ];
-
 const ItemTypes = {
   TILE: 'tile',
 };

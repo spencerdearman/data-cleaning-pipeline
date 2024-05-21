@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder
 import re
+from hashlib import sha256
 
 app = Flask(__name__)
 CORS(app)
@@ -120,6 +121,62 @@ def clean_uniform_substrings(df, substrings):
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
     return df
 
+def split_caps_columns(df):
+    def split_caps(text):
+        # Split only on the pattern 'CapsCaps' without spaces in between
+        return re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', text)
+
+    for col in df.columns:
+        # Apply the split only if no cell in the column contains spaces and matches the 'CapsCaps' pattern
+        if df[col].apply(lambda x: isinstance(x, str) and ' ' in x).any():
+            continue
+        mask = df[col].apply(lambda x: isinstance(x, str) and bool(re.search(r'[a-z][A-Z]', x)))
+        if mask.any():
+            split_series = df.loc[mask, col].apply(split_caps)
+            new_cols = split_series.str.split(' ', expand=True, n=1)
+            df[f'{col} first'] = new_cols[0]
+            df[f'{col} last'] = new_cols[1]
+            df = df.drop(columns=[col])
+
+    return df
+
+# New generalized functions
+def detect_and_remove_outliers(df, threshold=3):
+    numeric_cols = df.select_dtypes(include=[np.number])
+    z_scores = np.abs((numeric_cols - numeric_cols.mean()) / numeric_cols.std())
+    df_clean = df[(z_scores < threshold).all(axis=1)]
+    return df_clean
+
+def standardize_dates(df):
+    date_columns = [col for col in df.columns if 'date' in col.lower()]
+    common_date_formats = [
+        '%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y.%m.%d',
+        '%d-%m-%y', '%m-%d-%Y', '%m-%d-%y', '%m/%d/%y', '%d/%m/%y',
+        '%d-%b-%Y', '%b-%d-%Y'
+    ]
+
+    for col in date_columns:
+        for fmt in common_date_formats:
+            try:
+                df[col] = pd.to_datetime(df[col], format=fmt, errors='raise')
+                break
+            except ValueError:
+                continue
+        # Convert to a uniform format after parsing
+        df[col] = df[col].dt.strftime('%Y-%m-%d')
+    return df
+
+def remove_highly_missing_columns(df, threshold=0.5):
+    missing_fraction = df.isnull().mean()
+    columns_to_remove = missing_fraction[missing_fraction > threshold].index
+    df = df.drop(columns=columns_to_remove)
+    return df
+
+def anonymize_columns(df, columns_to_anonymize):
+    for col in columns_to_anonymize:
+        df[col] = df[col].apply(lambda x: sha256(x.encode()).hexdigest() if isinstance(x, str) else x)
+    return df
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -161,6 +218,14 @@ def upload_file():
         if 'clean_uniform_substrings' in options:
             uniform_substrings = find_uniform_substrings(df)
             df = clean_uniform_substrings(df, uniform_substrings)
+        if 'split_caps_columns' in options:
+            df = split_caps_columns(df)
+        if 'detect_and_remove_outliers' in options:
+            df = detect_and_remove_outliers(df)
+        if 'standardize_dates' in options:
+            df = standardize_dates(df)
+        if 'remove_highly_missing_columns' in options:
+            df = remove_highly_missing_columns(df)
 
         cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
         save_to_csv(df, cleaned_filepath)
