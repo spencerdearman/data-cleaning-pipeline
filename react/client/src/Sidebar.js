@@ -12,7 +12,7 @@ const displayToOptionMap = Object.entries(cleaningOptionsMap).reduce((acc, [key,
   return acc;
 }, {});
 
-const Tile = ({ displayName, option, index, moveTile, removeTile }) => {
+const Tile = ({ displayName, option, index, removeTile }) => {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TILE,
     item: { option, index },
@@ -95,7 +95,7 @@ const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, messag
             onClick={handleAddAllOptions}
             className="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-700 w-full mb-4"
           >
-            Automatic Clean
+            Total Clean
           </button>
           <Pipeline pipeline={pipeline} setPipeline={setPipeline} />
           <div className="mb-4">

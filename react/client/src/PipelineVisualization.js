@@ -11,7 +11,7 @@ const PipelineVisualization = ({ pipeline, progress }) => {
     return (
       <div className="flex-1 p-4 bg-white">
         <h2 className="text-2xl font-bold mb-8 text-center">Pipeline Visualization</h2>
-        <p className="mt-4">Create your pipeline</p>
+        <p className="mt-4">Drag and drop to create pipeline!</p>
       </div>
     );
   }
@@ -24,11 +24,11 @@ const PipelineVisualization = ({ pipeline, progress }) => {
     <div className="flex-1 p-4 bg-white">
       <h2 className="text-2xl font-bold mb-8 text-center">Pipeline Visualization</h2>
       <div className="flex items-center justify-center pipeline-container mb-8">
-        {pipeline.map((step, index) => (
+        {pipeline.map((_, index) => (
           <div key={index} className="flex items-center pipeline-step">
             <div className={`relative flex items-center justify-center rounded-full border-2 ${progress >= calculateStepProgress(index) ? 'bg-green-500 border-green-500' : 'bg-blue-500 border-blue-500'}`} style={{ width: 'var(--pipeline-step-size)', height: 'var(--pipeline-step-size)' }}>
               {progress >= calculateStepProgress(index) ? (
-                <svg className="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ width: '60%', height: '60%' }}>
+                <svg className="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '60%', height: '60%' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               ) : (
