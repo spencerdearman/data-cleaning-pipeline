@@ -18,6 +18,8 @@
 
 3. Once you are satisfied with the options, then click 'Upload and Clean' which might take a few seconds. Then, you should see the pipeline turn green and the progress bar should move to 100%. You can then scroll down on the sidebar and select the option 'Download Cleaned File'. See 'ReferenceImage2'
 
+### NOTE: If you want to see the outcome with test data, I would recommend looking at the audible folder under the test-data section. 'audible_uncleaned' is the uncleaned version, and 'cleaned_audible_uncleaned' is the outcome after being run through the complete pipeline. I DID NOT EDIT THE OUTCOME FILE.
+
 ### Main Files
 
 #### Server.py 
