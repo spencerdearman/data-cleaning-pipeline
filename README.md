@@ -18,3 +18,22 @@
 
 3. Once you are satisfied with the options, then click 'Upload and Clean' which might take a few seconds. Then, you should see the pipeline turn green and the progress bar should move to 100%. You can then scroll down on the sidebar and select the option 'Download Cleaned File'. See 'ReferenceImage2'
 
+### Main Files
+
+#### Server.py 
+This is where all of the actual functions for cleaning the data are. This is the python file that is in the flask-server folder, and it also handles a lot of the pipeline processing. 
+
+#### App.js
+Main file for the React App
+
+#### PipelineVisualization.js
+The pipeline structure and formatting
+
+#### Sidebar.js
+The sidebar structure and formatting
+
+#### utils.js
+Just contains the cleaningOptionsMap
+
+
+
