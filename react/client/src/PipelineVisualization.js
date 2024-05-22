@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 
+// PipelineVisualization component
 const PipelineVisualization = ({ pipeline, progress }) => {
   useEffect(() => {
     const arrowSize = Math.max(10, 50 - pipeline.length);
@@ -7,6 +8,7 @@ const PipelineVisualization = ({ pipeline, progress }) => {
     document.documentElement.style.setProperty('--pipeline-arrow-width', `${arrowSize}px`);
   }, [pipeline.length]);
 
+  // If the pipeline is empty, show the drag and drop message
   if (pipeline.length === 0) {
     return (
       <div className="flex-1 p-4 bg-white">
@@ -16,6 +18,7 @@ const PipelineVisualization = ({ pipeline, progress }) => {
     );
   }
 
+  // Calculating the progress of each step
   const calculateStepProgress = (index) => {
     return ((index + 1) / pipeline.length) * 100;
   };

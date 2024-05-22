@@ -217,6 +217,8 @@ def anonymize_columns(df):
 def save_to_csv(df, filename):
     df.to_csv(filename, index=False)
 
+# IF I CONTINUE THIS PROJECT, HERE IS WHERE I WANT TO ADD THE ML FORMATTER FUNCTION
+
 @app.route('/upload', methods=['POST'])
 
 # Handle file upload and apply data cleaning options

@@ -7,11 +7,13 @@ const ItemTypes = {
   TILE: 'tile',
 };
 
+// Using the cleaningOptionsMap to show the correct names in the sidebar
 const displayToOptionMap = Object.entries(cleaningOptionsMap).reduce((acc, [key, value]) => {
   acc[value] = key;
   return acc;
 }, {});
 
+// Tile component
 const Tile = ({ displayName, option, index, removeTile }) => {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TILE,
@@ -33,6 +35,7 @@ const Tile = ({ displayName, option, index, removeTile }) => {
   );
 };
 
+// Pipeline component
 const Pipeline = ({ pipeline, setPipeline }) => {
   const [{ isOver }, drop] = useDrop({
     accept: ItemTypes.TILE,
@@ -72,9 +75,11 @@ const Pipeline = ({ pipeline, setPipeline }) => {
   );
 };
 
+// Sidebar component
 const Sidebar = ({ handleFileChange, handleSubmit, pipeline, setPipeline, message, cleanedFile, resetPipeline }) => {
   const availableOptions = Object.keys(cleaningOptionsMap).filter(option => !pipeline.includes(cleaningOptionsMap[option]));
 
+  // Function to add all options to the pipeline
   const handleAddAllOptions = () => {
     const allOptions = Object.values(cleaningOptionsMap);
     setPipeline(allOptions);

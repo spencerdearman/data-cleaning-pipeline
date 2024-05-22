@@ -1,3 +1,4 @@
+// Just mapping all of the function titles to the actual function names
 export const cleaningOptionsMap = {
     'Lower Case Columns': 'lower_case_columns',
     'Remove Duplicates': 'remove_duplicates',

@@ -10,11 +10,13 @@ const App = () => {
   const [progress, setProgress] = useState(0);
   const [cleanedFile, setCleanedFile] = useState('');
 
+  // Handling file selection
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
   };
 
+  // Handling file uploading
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
@@ -23,11 +25,13 @@ const App = () => {
       return;
     }
 
+    // Preparing the file data
     const formData = new FormData();
     formData.append('file', file);
     formData.append('options', JSON.stringify(pipeline));
     console.log("Form data prepared:", formData);
 
+    // Uploading the file
     try {
       const response = await axios.post('http://127.0.0.1:5000/upload', formData, {
         headers: {
@@ -37,14 +41,17 @@ const App = () => {
       console.log('Response:', response.data);
       setMessage(response.data.message);
       setCleanedFile(response.data.cleaned_file);
-      setProgress(100); // Update progress to 100% when the process is complete
+      // Updating the progress bar to 100% if the cleaning is complete
+      setProgress(100);
     } catch (error) {
       console.error('Error uploading file:', error);
       setMessage(error.response?.data?.message || 'Error uploading file');
-      setProgress(0); // Reset progress on error
+      // Resetting the progress bar
+      setProgress(0);
     }
   };
 
+  // Function that will reset the pipeline
   const resetPipeline = () => {
     setPipeline([]);
     setProgress(0);
