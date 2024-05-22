@@ -26,14 +26,14 @@ code {
 .sidebar {
   overflow-y: auto;
   max-height: 100vh;
-  width: 400px; /* Restored sidebar width */
+  width: 400px;
 }
 
 .pipeline-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px; /* Add some space between items */
+  gap: 10px;
 }
 
 .pipeline-step {
@@ -48,7 +48,7 @@ code {
   width: var(--pipeline-arrow-width);
   height: var(--pipeline-arrow-size);
   background-color: #9ca3af;
-  margin-left: 6px; /* Adjusted to move right */
+  margin-left: 6px;
 }
 
 .arrow::after {
