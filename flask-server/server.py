@@ -10,7 +10,7 @@ from sklearn.impute import SimpleImputer
 from flask_cors import CORS
 from hashlib import sha256
 
-# Create a Flask app
+# Creating a Flask app
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = 'secretkey'
@@ -65,7 +65,7 @@ def encode_categorical_columns(df, threshold=20):
 
     return df
 
-# Find uniform prefixes in string columns
+# Finding the uniform prefixes in string columns
 def find_uniform_prefixes(df):
     prefixes = {}
 
@@ -85,22 +85,22 @@ def find_uniform_prefixes(df):
 
     return prefixes
 
-# Remove uniform prefixes from string columns
+# Removing uniform prefixes from string columns
 def clean_uniform_prefixes(df, prefixes):
     for col, prefix in prefixes.items():
-        # Remove the prefix from each value in the column
+        # Removing the prefix from each value in the column
         pattern = re.compile(rf'^{re.escape(prefix)}', re.IGNORECASE)
         df[col] = df[col].apply(lambda x: re.sub(pattern, '', str(x)) if isinstance(x, str) else x)
 
     return df
 
-# Find uniform postfixes in string columns
+# Finding uniform postfixes in string columns
 def find_uniform_postfixes(df):
     postfixes = {}
     for col in df.select_dtypes(include=['object']).columns:
         col_values = df[col].dropna().astype(str)
         if not col_values.empty:
-            # Extract the postfix from the last non-null value in each column
+            # Extracting the postfix from the last non-null value in each column
             postfix = col_values.str.extract(r'([^:]+:)$', expand=False).mode()
             if not postfix.empty:
                 postfix = postfix[0]
@@ -111,7 +111,7 @@ def find_uniform_postfixes(df):
 
     return postfixes
 
-# Remove uniform postfixes from string columns
+# Removing uniform postfixes from string columns
 def clean_uniform_postfixes(df, postfixes):
     for col, postfix in postfixes.items():
         pattern = re.compile(rf'{re.escape(postfix)}$', re.IGNORECASE)
@@ -119,7 +119,7 @@ def clean_uniform_postfixes(df, postfixes):
 
     return df
 
-# Find uniform substrings in string columns
+# Finding uniform substrings in string columns
 def find_uniform_substrings(df):
     substrings = {}
     for col in df.select_dtypes(include=['object']).columns:
@@ -135,7 +135,7 @@ def find_uniform_substrings(df):
 
     return substrings
 
-# Remove uniform substrings from string columns
+# Removing uniform substrings from string columns
 def clean_uniform_substrings(df, substrings):
     for col, substring in substrings.items():
         pattern = re.compile(rf'{re.escape(substring)}', re.IGNORECASE)
@@ -143,19 +143,19 @@ def clean_uniform_substrings(df, substrings):
 
     return df
 
-# Split column names and string values based on camel case pattern
+# Splitting column names and string values based on camel case pattern
 def split_caps_columns(df):
     def split_caps(text):
-        # Split only on the pattern with 2 capitals without a space in between
+        # Splitting only on the pattern with 2 capitals without a space in between
         return re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', text)
 
     for col in df.columns:
-        # Apply the split only if no cell in the column contains spaces and matches the pattern
+        # Applying the split only if no cell in the column contains spaces and matches the pattern
         if df[col].apply(lambda x: isinstance(x, str) and ' ' in x).any():
             continue
         mask = df[col].apply(lambda x: isinstance(x, str) and bool(re.search(r'[a-z][A-Z]', x)))
         if mask.any():
-            # Split the column into two new columns based on the pattern
+            # Splitting the column into two new columns based on the pattern
             split_series = df.loc[mask, col].apply(split_caps)
             new_cols = split_series.str.split(' ', expand=True, n=1)
             df[f'{col} first'] = new_cols[0]
@@ -164,7 +164,7 @@ def split_caps_columns(df):
 
     return df
 
-# Detect and remove outliers in numeric columns based on Z-scores
+# Detecting and remove outliers in numeric columns based on Z-scores
 def detect_and_remove_outliers(df, threshold=3):
     numeric_cols = df.select_dtypes(include=[np.number])
     z_scores = np.abs((numeric_cols - numeric_cols.mean()) / numeric_cols.std())
@@ -172,7 +172,7 @@ def detect_and_remove_outliers(df, threshold=3):
 
     return df_clean
 
-# Standardize date columns to a uniform format
+# Standardizing date columns to a uniform format
 def standardize_dates(df):
     date_columns = [col for col in df.columns if 'date' in col.lower()]
 
@@ -181,7 +181,7 @@ def standardize_dates(df):
                            '%d-%m-%y', '%m-%d-%Y', '%m-%d-%y', '%m/%d/%y', '%d/%m/%y',
                            '%d-%b-%Y', '%b-%d-%Y']
 
-    # Try parsing each date column with the common date formats
+    # Parsing each date column with the common date formats
     for col in date_columns:
         for fmt in common_date_formats:
             try:
@@ -190,12 +190,12 @@ def standardize_dates(df):
             except ValueError:
                 continue
 
-        # Convert to a uniform format after parsing
+        # Converting to a uniform format after parsing
         df[col] = df[col].dt.strftime('%Y-%m-%d')
 
     return df
 
-# Remove columns with a high percentage of missing values
+# Removing columns with a high percentage of missing values
 def remove_highly_missing_columns(df, threshold=0.5):
     missing_fraction = df.isnull().mean()
     columns_to_remove = missing_fraction[missing_fraction > threshold].index
@@ -203,7 +203,7 @@ def remove_highly_missing_columns(df, threshold=0.5):
 
     return df
 
-# Anonymize specified columns by hashing their values
+# Anonymizing specified columns by hashing their values
 def anonymize_columns(df):
     keywords = ['name', 'key', 'identifier', 'email', 'phone', 'zip', 
                 'postal', 'code', 'security', 'id', 'ip', 'ssn']
@@ -213,7 +213,7 @@ def anonymize_columns(df):
 
     return df
 
-# Save the dataframe to a CSV file
+# Saving the dataframe to a CSV file
 def save_to_csv(df, filename):
     df.to_csv(filename, index=False)
 
@@ -221,27 +221,27 @@ def save_to_csv(df, filename):
 
 @app.route('/upload', methods=['POST'])
 
-# Handle file upload and apply data cleaning options
+# Handling file upload and apply data cleaning options
 def upload_file():
     try:
-        # Check if the post request has the file part
+        # Checking if the post request has the file part
         file = request.files['file']
         if file.filename == '':
             # No file selected
             return jsonify({'message': 'No selected file'}), 400
 
-        # Check if the file is allowed
+        # Checking if the file is allowed
         options = json.loads(request.form.get('options', '[]'))
 
-        # Save the file to the upload folder
+        # Saving the file to the upload folder
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
-        # Read the file into a pandas dataframe
+        # Reading the file into a pandas dataframe
         df = pd.read_csv(filepath)
 
-        # Apply the selected data cleaning options
+        # Applying the selected data cleaning options
         if 'lower_case_columns' in options:
             df = lower_case_columns(df)
         if 'remove_duplicates' in options:
@@ -270,7 +270,7 @@ def upload_file():
         if 'anonymize_columns' in options:
             df = anonymize_columns(df)
 
-        # Save the cleaned dataframe to a new CSV file
+        # Saving the cleaned dataframe to a new CSV file
         cleaned_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'cleaned_' + filename)
         save_to_csv(df, cleaned_filepath)
 
@@ -280,7 +280,7 @@ def upload_file():
 
 @app.route('/static/files/<filename>')
 
-# Serve a file from the static files directory
+# Need for the download button
 def download_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
