@@ -1,4 +1,4 @@
-# Ethics Final Project: CMSC 25910
+# Data Cleaning Pipeline
 
 ## To Run
 
