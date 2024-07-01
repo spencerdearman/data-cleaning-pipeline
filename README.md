@@ -1,5 +1,7 @@
 # Data Cleaning Pipeline
 
+<img width="1721" alt="ReferenceImage2" src="https://github.com/spencerdearman/data-cleaning/assets/121642493/b0452f82-1a9a-439a-b966-e2e69626be34">
+
 ## To Run
 
 ### Flask Server Setup
